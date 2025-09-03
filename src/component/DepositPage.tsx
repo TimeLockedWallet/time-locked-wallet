@@ -4,6 +4,15 @@ import { useEffect, useState } from "react";
 import { useSelector } from "react-redux";
 import { getUSDCBalance } from "../functions/getTokenBalance";
 
+import * as anchor from "@coral-xyz/anchor";
+import { Program, Wallet, AnchorProvider } from "@coral-xyz/anchor";
+import type { TimeLockedWallet } from "../target/types/time_locked_wallet";
+import { PublicKey, Keypair, SystemProgram, LAMPORTS_PER_SOL, Transaction, sendAndConfirmTransaction, Connection, clusterApiUrl } from "@solana/web3.js";
+import { createMint, mintTo, getAccount, getOrCreateAssociatedTokenAccount, createSyncNativeInstruction, TOKEN_PROGRAM_ID, createTransferInstruction, AccountLayout } from "@solana/spl-token";
+import { program } from "@coral-xyz/anchor/dist/cjs/native/system.js";
+import { BN } from "bn.js";
+import idl from "../target/idl/time_locked_wallet.json";
+
 const symbols = ["SOL", "USDC"];
 const symbol_to_name_img: any = {
 	SOL: "solana_logo",
@@ -72,6 +81,82 @@ function DepositPage() {
 			}
 		});
 	}, []);
+
+	const getProvider = () => {
+		const provider = new AnchorProvider(
+			new anchor.web3.Connection("https://api.devnet.solana.com", "confirmed"),
+			{
+				publicKey: (window as any).phantom?.solana.publicKey,
+				signTransaction: (tx: any) => (window as any).phantom?.solana.signTransaction(tx),
+				signAllTransactions: (txs: any) => (window as any).phantom?.solana.signAllTransactions(txs),
+			} as any,
+			{ preflightCommitment: "processed" }
+		);
+		return provider;
+	};
+
+	const initializeLock = async () => {
+		try {
+			let program: Program<TimeLockedWallet>;
+			let provider;
+
+			let authority: Wallet;
+			let recipient: PublicKey;
+
+			let configPda: PublicKey;
+			let vaultPda: PublicKey;
+			let bankVaultPda: PublicKey;
+
+			let userUsdcAta: PublicKey;
+			let bankVaultUsdcAta: PublicKey;
+
+			const CONFIG_SEED = "CONFIG";
+			const VAULT_SEED = "VAULT";
+			const BANK_VAULT_SEED = "BANK_VAULT";
+
+			const TOKENS = {
+				usdcMint: new PublicKey("4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU"),
+				wsolMint: new PublicKey("So11111111111111111111111111111111111111112"),
+			};
+
+			provider = getProvider();
+			anchor.setProvider(provider);
+			program = new Program(idl as any, provider);
+
+			authority = provider.wallet as any;
+			recipient = provider.wallet as any;
+
+			[configPda] = PublicKey.findProgramAddressSync([Buffer.from(CONFIG_SEED)], program.programId);
+
+			[vaultPda] = PublicKey.findProgramAddressSync([Buffer.from(VAULT_SEED), authority.publicKey.toBuffer()], program.programId);
+
+			[bankVaultPda] = PublicKey.findProgramAddressSync([Buffer.from(BANK_VAULT_SEED), authority.publicKey.toBuffer()], program.programId);
+
+			userUsdcAta = (await getOrCreateAssociatedTokenAccount(provider.connection, authority.payer, TOKENS.usdcMint, authority.publicKey, true)).address;
+
+			bankVaultUsdcAta = (await getOrCreateAssociatedTokenAccount(provider.connection, authority.payer, TOKENS.usdcMint, bankVaultPda, true)).address;
+
+			const unlockTimestamp = Math.floor(Date.now() / 1000) + 60;
+			const amount = new BN(1_000_000); // 1 USDC
+			const isSol = true;
+			const tx = await program.methods
+				.initializeLock(new BN(unlockTimestamp), authority.publicKey, amount, isSol)
+				.accountsPartial({
+					vault: vaultPda,
+					bankVault: bankVaultPda,
+					userTokenAta: userUsdcAta,
+					bankVaultTokenAta: bankVaultUsdcAta,
+					user: authority.publicKey,
+					tokenMint: TOKENS.usdcMint,
+					associatedTokenProgram: anchor.utils.token.ASSOCIATED_PROGRAM_ID,
+					systemProgram: SystemProgram.programId,
+				})
+				.rpc();
+			console.log("Your transaction signature", tx);
+		} catch (err) {
+			console.log("Deposit error: ", err);
+		}
+	};
 
 	return (
 		<div className="deposit-page">
@@ -203,7 +288,9 @@ function DepositPage() {
 				</div>
 			</div>
 
-			<div className="deposit-button">Deposit</div>
+			<div className="deposit-button" onClick={initializeLock}>
+				Deposit
+			</div>
 		</div>
 	);
 }
