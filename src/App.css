@@ -1,0 +1,21 @@
+@font-face {
+	font-family: "jbmn";
+	src: url("./fonts/JetBrainsMono-Regular.ttf") format("truetype");
+}
+
+@font-face {
+	font-family: "jbmn-bold";
+	src: url("./fonts/JetBrainsMono-Bold.ttf") format("truetype");
+}
+
+.App {
+	position: absolute;
+	top: 0px;
+	left: 0px;
+	width: 100%;
+	height: 100vh;
+	overflow-x: hidden;
+	overflow-y: auto;
+	background-color: #080b16;
+	font-family: "jbmn";
+}

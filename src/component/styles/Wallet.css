@@ -1,0 +1,67 @@
+.wallet {
+	position: absolute;
+	top: 15px;
+	right: 20px;
+	width: fit-content;
+	height: 55px;
+	background-color: transparent;
+	z-index: 30;
+}
+
+.connect-wallet {
+	width: fit-content;
+	height: 100%;
+	display: flex;
+	flex-direction: row;
+	white-space: nowrap;
+	align-items: center;
+	justify-content: center;
+	background-color: #54d1f7;
+	color: #000;
+	font-size: 18px;
+	font-family: "jbmn";
+	border: none;
+	border-radius: 10px;
+	cursor: pointer;
+	padding-left: 10px;
+	padding-right: 10px;
+}
+
+.connected-wallet {
+	width: fit-content;
+	height: 100%;
+	display: flex;
+	flex-direction: row;
+	gap: 10px;
+}
+
+.account-address {
+	width: fit-content;
+	height: 100%;
+	display: flex;
+	flex-direction: row;
+	gap: 5px;
+	align-items: center;
+	justify-content: center;
+	background-color: #1e243e;
+	color: #fff;
+	font-size: 15px;
+	border-radius: 30px;
+	padding-left: 10px;
+	padding-right: 10px;
+}
+
+.wallet_logo {
+	height: 35px;
+}
+
+.disconnect {
+	font-size: 18px;
+	border-radius: 10px;
+	background-color: #1e243e;
+	color: #fff;
+	cursor: pointer;
+	border: none;
+	padding-left: 10px;
+	padding-right: 10px;
+}

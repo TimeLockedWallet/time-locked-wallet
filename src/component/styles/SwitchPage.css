@@ -1,0 +1,15 @@
+.switch-page {
+	position: absolute;
+	top: 30px;
+	left: 100px;
+	width: fit-content;
+	height: fit-content;
+	display: flex;
+	flex-direction: row;
+	gap: 20px;
+	font-size: 20px;
+}
+
+.page-item {
+	cursor: pointer;
+}

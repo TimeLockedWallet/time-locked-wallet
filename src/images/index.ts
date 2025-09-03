@@ -1,0 +1,11 @@
+import extend from './extend.png'
+import phantom_logo from './phantom_logo.png'
+import solana_logo from './solana_logo.png'
+import usdc_logo from './usdc_logo.png'
+
+export {
+  extend,
+  phantom_logo,
+  solana_logo,
+  usdc_logo,
+}
