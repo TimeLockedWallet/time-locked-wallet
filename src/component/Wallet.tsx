@@ -66,8 +66,12 @@ function Wallet() {
 			) : (
 				walletAddress !== "" && (
 					<div className="connected-wallet">
+						<div className="choose-chain">
+							<div>Solana Devnet</div>
+							<img src={imgs["extend"]} style={{ height: "15px" }} />
+						</div>
 						<div className="account-address">
-							<img className="wallet_logo" alt="phantom_logo" src={imgs.phantom_logo} />
+							<img className="wallet-logo" alt="phantom_logo" src={imgs.phantom_logo} />
 							{String(walletAddress).slice(0, 4) + ".." + String(walletAddress).slice(-4)}
 						</div>
 						<button

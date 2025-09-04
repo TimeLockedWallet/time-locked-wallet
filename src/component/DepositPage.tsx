@@ -14,6 +14,7 @@ import idl from "../target/idl/time_locked_wallet.json";
 import { fromTimestamp, toTimestamp } from "../functions/clock";
 import { changeInfo } from "../redux/slices/depositSlice";
 import { getInfoUser } from "../functions/getInfoUser";
+import { addAction } from "../functions/history";
 
 const symbols = ["SOL", "USDC"];
 const symbol_to_name_img: any = {
@@ -196,6 +197,7 @@ function DepositPage() {
 			console.log(result);
 
 			if (result.value.err === null) {
+				addAction(walletAddress, `Deposit ${Number(amountInput)} ${tokenSymbol}`, String(sig));
 				alert("Transaction successful!");
 			} else {
 				console.error("Transaction failed: ", result.value.err);

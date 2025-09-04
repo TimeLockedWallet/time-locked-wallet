@@ -35,6 +35,23 @@
 	gap: 10px;
 }
 
+.choose-chain {
+	width: fit-content;
+	height: 100%;
+	display: flex;
+	flex-direction: row;
+	gap: 5px;
+	align-items: center;
+	justify-content: center;
+	background-color: #1e243e;
+	color: #fff;
+	font-size: 15px;
+	border-radius: 30px;
+	padding-left: 10px;
+	padding-right: 10px;
+	cursor: pointer;
+}
+
 .account-address {
 	width: fit-content;
 	height: 100%;
@@ -51,7 +68,7 @@
 	padding-right: 10px;
 }
 
-.wallet_logo {
+.wallet-logo {
 	height: 35px;
 }
 

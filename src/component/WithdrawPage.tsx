@@ -12,8 +12,10 @@ import { getOrCreateAssociatedTokenAccount, getAssociatedTokenAddress, createAss
 import idl from "../target/idl/time_locked_wallet.json";
 import { BN } from "bn.js";
 import { changeInfo } from "../redux/slices/depositSlice";
+import { addAction } from "../functions/history";
 
 function WithdrawPage() {
+	const walletAddress = useSelector((state: any) => state.wallet.publicKey);
 	const rpcUrl = useSelector((state: any) => state.wallet.rpcUrl);
 	const depositInfo = useSelector((state: any) => state.deposit.info);
 	const dispatch = useDispatch();
@@ -105,9 +107,10 @@ function WithdrawPage() {
 			console.log("initializeLock done, tx:", sig);
 
 			if (result.value.err === null) {
+				addAction(walletAddress, `Withdraw ${depositInfo.amount} ${depositInfo.token_symbol}`, String(sig));
 				alert("Transaction successful!");
 			} else {
-				console.error("Giao dịch thất bại:", result.value.err);
+				console.error("Transaction failed:", result.value.err);
 				alert("Transaction failed!");
 			}
 		} catch (err: any) {
