@@ -5,7 +5,7 @@
  * IDL can be found at `target/idl/time_locked_wallet.json`.
  */
 export type TimeLockedWallet = {
-  "address": "2JmVJxHLe3mjitVzwywyH8Hz5a4Hw2ZmjkuD77Px3iFp",
+  "address": "fi79pH1tGywgPZWmoStRoYgNrUFYvoJZAM2wqDb8yjK",
   "metadata": {
     "name": "timeLockedWallet",
     "version": "0.1.0",
@@ -675,6 +675,10 @@ export type TimeLockedWallet = {
       "type": {
         "kind": "struct",
         "fields": [
+          {
+            "name": "token",
+            "type": "pubkey"
+          },
           {
             "name": "amount",
             "type": "u64"

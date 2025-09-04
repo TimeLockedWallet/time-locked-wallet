@@ -1,27 +1,37 @@
 import "./styles/DepositPage.css";
 import * as imgs from "../images/index";
 import { useEffect, useState } from "react";
-import { useSelector } from "react-redux";
+import { useDispatch, useSelector } from "react-redux";
 import { getUSDCBalance } from "../functions/getTokenBalance";
 
 import * as anchor from "@coral-xyz/anchor";
 import { Program, Wallet, AnchorProvider } from "@coral-xyz/anchor";
 import type { TimeLockedWallet } from "../target/types/time_locked_wallet";
-import { PublicKey, Keypair, SystemProgram, LAMPORTS_PER_SOL, Transaction, sendAndConfirmTransaction, Connection, clusterApiUrl } from "@solana/web3.js";
-import { createMint, mintTo, getAccount, getOrCreateAssociatedTokenAccount, createSyncNativeInstruction, TOKEN_PROGRAM_ID, createTransferInstruction, AccountLayout } from "@solana/spl-token";
-import { program } from "@coral-xyz/anchor/dist/cjs/native/system.js";
+import { PublicKey, SystemProgram, Transaction } from "@solana/web3.js";
+import { getOrCreateAssociatedTokenAccount, getAssociatedTokenAddress, createAssociatedTokenAccountInstruction } from "@solana/spl-token";
 import { BN } from "bn.js";
 import idl from "../target/idl/time_locked_wallet.json";
+import { fromTimestamp, toTimestamp } from "../functions/clock";
+import { changeInfo } from "../redux/slices/depositSlice";
+import { getInfoUser } from "../functions/getInfoUser";
 
 const symbols = ["SOL", "USDC"];
 const symbol_to_name_img: any = {
 	SOL: "solana_logo",
 	USDC: "usdc_logo",
 };
+const symbol_to_lamports: any = {
+	SOL: 1_000_000_000,
+	USDC: 1_000_000,
+};
 
 function DepositPage() {
 	const walletAddress = useSelector((state: any) => state.wallet.publicKey);
+	const rpcUrl = useSelector((state: any) => state.wallet.rpcUrl);
+	const depositInfo = useSelector((state: any) => state.deposit.info);
+	const dispatch = useDispatch();
 
+	const [loading, setLoading] = useState(false);
 	const [tokenSymbol, setTokenSymbol] = useState("SOL");
 	const [showListToken, setShowListToken] = useState(false);
 	const [tokenBalance, setTokenBalance] = useState(-1);
@@ -52,20 +62,6 @@ function DepositPage() {
 		return new Promise((resolve) => setTimeout(resolve, ms));
 	};
 
-	const setMaxBalance = async () => {
-		const el = document.querySelector(".choose-amount");
-		if (!el) return;
-		let newValue = tokenBalance.toString();
-		for (let i = 0; i < newValue.length; i++) {
-			await sleep(80);
-			(el as any).value = newValue.slice(0, i + 1);
-		}
-	};
-
-	const updateBalanceToken = async () => {
-		setTokenBalance(await getUSDCBalance(tokenSymbol, walletAddress));
-	};
-
 	useEffect(() => {
 		const el = document.querySelector(".choose-amount");
 		if (el) (el as any).value = "";
@@ -80,11 +76,33 @@ function DepositPage() {
 				setShowListToken(false);
 			}
 		});
+
+		const dataTime = fromTimestamp(Number(Date.now()));
+		setYear(dataTime.year);
+		setMonth(dataTime.month);
+		setDay(dataTime.day);
+		setHour(dataTime.hour);
+		setMinute(dataTime.minute);
+		setSecond(dataTime.second);
 	}, []);
+
+	const setMaxBalance = async () => {
+		const el = document.querySelector(".choose-amount");
+		if (!el) return;
+		let newValue = tokenBalance.toString();
+		for (let i = 0; i < newValue.length; i++) {
+			await sleep(80);
+			(el as any).value = newValue.slice(0, i + 1);
+		}
+	};
+
+	const updateBalanceToken = async () => {
+		setTokenBalance(await getUSDCBalance(tokenSymbol, walletAddress));
+	};
 
 	const getProvider = () => {
 		const provider = new AnchorProvider(
-			new anchor.web3.Connection("https://api.devnet.solana.com", "confirmed"),
+			new anchor.web3.Connection(rpcUrl, "confirmed"),
 			{
 				publicKey: (window as any).phantom?.solana.publicKey,
 				signTransaction: (tx: any) => (window as any).phantom?.solana.signTransaction(tx),
@@ -96,50 +114,62 @@ function DepositPage() {
 	};
 
 	const initializeLock = async () => {
+		if (!(depositInfo === null)) {
+			alert("Please withdraw to continue depositing.");
+			return;
+		}
+
+		if (year === "" || month === "" || day === "" || hour === "" || minute === "" || second === "") {
+			alert("Invalid unlock time.");
+			return;
+		}
+
+		const el = document.querySelector(".choose-amount");
+		const amountInput = (el as any).value;
+		if (amountInput === "" || isNaN(Number(amountInput))) {
+			alert("Invalid amount token.");
+			return;
+		}
+
+		setLoading(true);
 		try {
 			let program: Program<TimeLockedWallet>;
 			let provider;
-
 			let authority: Wallet;
-			let recipient: PublicKey;
-
-			let configPda: PublicKey;
 			let vaultPda: PublicKey;
 			let bankVaultPda: PublicKey;
-
 			let userUsdcAta: PublicKey;
 			let bankVaultUsdcAta: PublicKey;
 
-			const CONFIG_SEED = "CONFIG";
 			const VAULT_SEED = "VAULT";
 			const BANK_VAULT_SEED = "BANK_VAULT";
-
-			const TOKENS = {
-				usdcMint: new PublicKey("4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU"),
-				wsolMint: new PublicKey("So11111111111111111111111111111111111111112"),
+			const TOKENS: any = {
+				USDC: new PublicKey("4zMMC9srt5Ri5X14GAgXhaHii3GnPAEERYPJgZJDncDU"),
+				SOL: new PublicKey("So11111111111111111111111111111111111111112"),
 			};
 
 			provider = getProvider();
 			anchor.setProvider(provider);
 			program = new Program(idl as any, provider);
-
 			authority = provider.wallet as any;
-			recipient = provider.wallet as any;
-
-			[configPda] = PublicKey.findProgramAddressSync([Buffer.from(CONFIG_SEED)], program.programId);
 
 			[vaultPda] = PublicKey.findProgramAddressSync([Buffer.from(VAULT_SEED), authority.publicKey.toBuffer()], program.programId);
-
 			[bankVaultPda] = PublicKey.findProgramAddressSync([Buffer.from(BANK_VAULT_SEED), authority.publicKey.toBuffer()], program.programId);
+			userUsdcAta = (await getOrCreateAssociatedTokenAccount(provider.connection, authority.payer, TOKENS["USDC"], authority.publicKey, true)).address;
+			bankVaultUsdcAta = await getAssociatedTokenAddress(TOKENS["USDC"], bankVaultPda, true);
 
-			userUsdcAta = (await getOrCreateAssociatedTokenAccount(provider.connection, authority.payer, TOKENS.usdcMint, authority.publicKey, true)).address;
+			const ixs: any[] = [];
 
-			bankVaultUsdcAta = (await getOrCreateAssociatedTokenAccount(provider.connection, authority.payer, TOKENS.usdcMint, bankVaultPda, true)).address;
+			const ataInfo = await provider.connection.getAccountInfo(bankVaultUsdcAta);
+			if (ataInfo === null) {
+				const ix = createAssociatedTokenAccountInstruction(authority.publicKey, bankVaultUsdcAta, bankVaultPda, TOKENS["USDC"]);
+				ixs.push(ix);
+			}
 
-			const unlockTimestamp = Math.floor(Date.now() / 1000) + 60;
-			const amount = new BN(1_000_000); // 1 USDC
-			const isSol = true;
-			const tx = await program.methods
+			const unlockTimestamp = Math.floor(toTimestamp(year, month, day, hour, minute, second) / 1000);
+			const isSol = tokenSymbol === "SOL";
+			const amount = new BN(Number(amountInput) * symbol_to_lamports[tokenSymbol]);
+			const lockIx = await program.methods
 				.initializeLock(new BN(unlockTimestamp), authority.publicKey, amount, isSol)
 				.accountsPartial({
 					vault: vaultPda,
@@ -147,19 +177,43 @@ function DepositPage() {
 					userTokenAta: userUsdcAta,
 					bankVaultTokenAta: bankVaultUsdcAta,
 					user: authority.publicKey,
-					tokenMint: TOKENS.usdcMint,
+					tokenMint: TOKENS["USDC"],
 					associatedTokenProgram: anchor.utils.token.ASSOCIATED_PROGRAM_ID,
 					systemProgram: SystemProgram.programId,
 				})
-				.rpc();
-			console.log("Your transaction signature", tx);
-		} catch (err) {
+				.instruction();
+			ixs.push(lockIx);
+
+			const tx = new Transaction().add(...ixs);
+			tx.feePayer = authority.publicKey;
+			tx.recentBlockhash = (await provider.connection.getLatestBlockhash()).blockhash;
+
+			const signed = await (window as any).solana.signTransaction(tx);
+			const sig = await provider.connection.sendRawTransaction(signed.serialize());
+			const result = await provider.connection.confirmTransaction(sig);
+
+			console.log("initializeLock done, tx:", sig);
+			console.log(result);
+
+			if (result.value.err === null) {
+				alert("Transaction successful!");
+			} else {
+				console.error("Transaction failed: ", result.value.err);
+				alert("Transaction failed!");
+			}
+		} catch (err: any) {
 			console.log("Deposit error: ", err);
+			if (String(err).search("rejected") !== -1) alert("Transaction rejected!");
+			else alert("Simulated transaction failed!");
 		}
+		setLoading(false);
+		dispatch(changeInfo(getInfoUser(getProvider())));
+		await updateBalanceToken();
 	};
 
 	return (
 		<div className="deposit-page">
+			{!(depositInfo === null) && <div style={{ marginBottom: "30px" }}>Please withdraw to continue depositing.</div>}
 			<div className="row-1" style={{ marginBottom: "8px" }}>
 				<input className="choose-amount" type="text" placeholder="0.0" />
 				<div className="choose-token">
@@ -289,7 +343,8 @@ function DepositPage() {
 			</div>
 
 			<div className="deposit-button" onClick={initializeLock}>
-				Deposit
+				{!loading && <div>Deposit</div>}
+				{loading && <img style={{ height: "25px" }} src={(imgs as any)["loading"]} />}
 			</div>
 		</div>
 	);
