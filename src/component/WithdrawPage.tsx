@@ -13,6 +13,7 @@ import idl from "../target/idl/time_locked_wallet.json";
 import { BN } from "bn.js";
 import { changeInfo } from "../redux/slices/depositSlice";
 import { addAction } from "../functions/history";
+import { getInfoUser } from "../functions/getInfoUser";
 
 function WithdrawPage() {
 	const walletAddress = useSelector((state: any) => state.wallet.publicKey);
@@ -131,9 +132,10 @@ function WithdrawPage() {
 		} catch (err: any) {
 			console.log("Deposit error: ", err);
 			if (String(err).search("rejected") !== -1) alert("Transaction rejected!");
+			else alert("Simulated transaction failed!");
 		}
+		dispatch(changeInfo(await getInfoUser(getProvider())));
 		setLoading(false);
-		dispatch(changeInfo(null));
 	};
 
 	return (

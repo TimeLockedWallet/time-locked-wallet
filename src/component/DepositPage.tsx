@@ -15,6 +15,7 @@ import { fromTimestamp, toTimestamp } from "../functions/clock";
 import { changeInfo } from "../redux/slices/depositSlice";
 import { getInfoUser } from "../functions/getInfoUser";
 import { addAction } from "../functions/history";
+import { BigNumber } from "bignumber.js";
 
 const symbols = ["SOL", "USDC"];
 const symbol_to_name_img: any = {
@@ -90,7 +91,7 @@ function DepositPage() {
 	const setMaxBalance = async () => {
 		const el = document.querySelector(".choose-amount");
 		if (!el) return;
-		let newValue = tokenBalance.toString();
+		let newValue = BigNumber(tokenBalance).minus(BigNumber(0.00098)).toString();
 		for (let i = 0; i < newValue.length; i++) {
 			await sleep(80);
 			(el as any).value = newValue.slice(0, i + 1);
@@ -208,9 +209,9 @@ function DepositPage() {
 			if (String(err).search("rejected") !== -1) alert("Transaction rejected!");
 			else alert("Simulated transaction failed!");
 		}
-		setLoading(false);
-		dispatch(changeInfo(getInfoUser(getProvider())));
+		dispatch(changeInfo(await getInfoUser(getProvider())));
 		await updateBalanceToken();
+		setLoading(false);
 	};
 
 	return (

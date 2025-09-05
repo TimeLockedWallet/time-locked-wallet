@@ -18,6 +18,7 @@ import { useEffect } from "react";
 import HistoryPage from "./component/HistoryPage";
 
 function App() {
+	const walletAddress = useSelector((state: any) => state.wallet.publicKey);
 	const rpcUrl = useSelector((state: any) => state.wallet.rpcUrl);
 	const dispatch = useDispatch();
 
@@ -86,7 +87,7 @@ function App() {
 		return () => {
 			provider?.off("connect", handleConnect);
 		};
-	}, []);
+	}, [walletAddress]);
 
 	return (
 		<div className="App">
