@@ -1,5 +1,5 @@
 import "./styles/WithdrawPage.css";
-import { formatTime, fromTimestamp } from "../functions/clock";
+import { formatTime, fromDuration, fromTimestamp } from "../functions/clock";
 import * as imgs from "../images/index";
 import { useEffect, useState } from "react";
 import { useDispatch, useSelector } from "react-redux";
@@ -21,6 +21,21 @@ function WithdrawPage() {
 	const dispatch = useDispatch();
 
 	const [loading, setLoading] = useState(false);
+	const [countDown, setCountDown] = useState(0);
+
+	useEffect(() => {
+		setCountDown(Math.floor(Number(Date.now()) / 1000));
+	}, []);
+
+	useEffect(() => {
+		const interval = setInterval(() => {
+			setCountDown((prev) => {
+				return prev > 10 ? prev + 1 : prev;
+			});
+		}, 1000);
+
+		return () => clearInterval(interval);
+	}, []);
 
 	const getProvider = () => {
 		const provider = new AnchorProvider(
@@ -131,10 +146,12 @@ function WithdrawPage() {
 						<div className="col-1">
 							<div>Unlock time:</div>
 							<div>Token amount deposit:</div>
+							<div>Countdown:</div>
 						</div>
 						<div className="col-2">
 							<div>{(depositInfo as any).format_time + " (GMT +7)"}</div>
 							<div>{(depositInfo as any).amount + " " + (depositInfo as any).token_symbol}</div>
+							<div>{fromDuration((depositInfo as any).unlock_time - countDown)}</div>
 						</div>
 					</>
 				)}

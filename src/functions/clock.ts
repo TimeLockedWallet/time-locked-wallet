@@ -22,6 +22,27 @@ export function fromTimestamp(timestamp: number) {
   };
 }
 
+export function fromDuration(time: number) {
+  if (time < 0) time = 0;
+
+  const minute = 60;
+  const hour = 60 * minute;
+  const day = 24 * hour;
+
+  let ntime = time;
+
+  const sday = Math.floor(ntime / day);
+  ntime = ntime % day;
+
+  const shour = Math.floor(ntime / hour);
+  ntime = ntime % hour;
+
+  const sminute = Math.floor(ntime / minute);
+  ntime = ntime % minute;
+
+  return String(sday) + "d:" + String(shour) + "h:" + String(sminute) + "m:" + String(ntime) + "s";
+}
+
 export function formatTime(data: any) {
   let result = "";
   result += (String(data.day).length < 2 ? "0" : "") + String(data.day) + '/';
